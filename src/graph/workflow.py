@@ -3,8 +3,8 @@ from langgraph.graph import StateGraph, END
 from src.graph.state import GraphState
 from src.configs import model_config
 
-from src.graph.nodes.scoring_nodes import visual_similarity, phonetic_similarity, conceptual_similarity, ensemble_model
-from src.graph.nodes.retrieval_nodes import save_infringe_risk_node, web_search_node
+from src.graph.nodes.model_nodes import visual_similarity, phonetic_similarity, conceptual_similarity, ensemble_model, save_infringe_risk_node
+from src.graph.nodes.web_search_nodes import web_search_node
 from src.graph.nodes.precedent_nodes import generate_query_node, grade_precedents_node , retrieve_precedents_node
 from src.graph.nodes.report_nodes import generate_report_node, evaluate_report_node
 

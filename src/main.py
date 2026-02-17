@@ -32,10 +32,10 @@ async def main():
         target_groups = await vector_store.search_similar_trademarks()
         
         if not target_groups:
-            logger.info("📭 처리할 유사 상표가 없습니다.")
+            logger.info("처리할 유사 상표가 없습니다.")
             return
 
-        logger.info(f"📋 유사 상표 후보가 있는 보호 상표 {len(target_groups)}개를 찾았습니다.")
+        logger.info(f"유사 상표 후보가 있는 보호 상표 {len(target_groups)}개를 찾았습니다.")
 
         # 배치 루프 실행
         total_processed = 0
@@ -56,8 +56,8 @@ async def main():
                 logger.error(f"데이터 유효성 검사 오류 (상표명: {p_tm.get('p_trademark_name')}): {e}")
                 continue
                 
-            logger.info(f"🔍 보호 상표 처리 중: {p_tm.p_trademark_name} (ID: {p_tm.p_trademark_user_no})")
-            logger.info(f"   - 발견된 후보 상표 수: {len(c_tm_list)}개")
+            logger.info(f"보호 상표 처리 중: {p_tm.p_trademark_name} (ID: {p_tm.p_trademark_user_no})")
+            logger.info(f" - 발견된 후보 상표 수: {len(c_tm_list)}개")
             
             # 보고서 누적 리스트 초기화 (보호 상표 단위)
             approved_reports: list[ApprovedReport] = []
@@ -67,7 +67,7 @@ async def main():
                 
                 # 수집 상표명
                 c_tm_name = c_tm.c_trademark_name
-                logger.info(f"   👉 후보 상표 분석 시작: {c_tm_name}")
+                logger.info(f"  후보 상표 분석 시작: {c_tm_name}")
                 
                 # LangGraph State 구성
                 initial_state: GraphState = {
@@ -108,7 +108,7 @@ async def main():
                     risk_level = ensemble_result.risk_level if ensemble_result else "N/A"
                     
                     status_icon = "🚨" if is_infringement else "✅"
-                    logger.info(f"      {status_icon} 분석 결과: 침해여부={is_infringement}, 위험등급={risk_level}")
+                    logger.info(f"  {status_icon} [{c_tm_name}] 분석 결과: 침해여부={is_infringement}, 위험등급={risk_level}")
                     
                     # 보고서 승인 시 리스트에 누적 (메일 발송은 루프 종료 후)
                     evaluation_decision = result.get("evaluation_decision", "")
