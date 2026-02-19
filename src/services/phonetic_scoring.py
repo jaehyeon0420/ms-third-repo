@@ -77,6 +77,21 @@ def _convert_pair(trademark_name):
                     pass
         
         if parsed:
+            # [Fix 2026-02-19] GPT가 {"korean": [], "korean_b": ["라온"]} 처럼 빈 리스트를 먼저 줄 경우 대비
+            # 유효한(값이 있는) 리스트를 우선 찾고, 없으면 마지막 리스트라도 반환
+            valid_result = None
+            
+            for key in parsed:
+                if isinstance(parsed[key], list):
+                    k_list = clean_hangul(parsed[key])
+                    if any(k_list) and k_list != [""]:
+                        valid_result = k_list
+                        break # 유효한 값을 찾았으면 즉시 반환
+            
+            if valid_result:
+                return apply_korean_phonetics(valid_result)
+            
+            # 만약 유효한 값이 없으면 첫 번째 리스트라도 사용 (혹은 원본)
             for key in parsed:
                 if isinstance(parsed[key], list):
                     k_list = clean_hangul(parsed[key])

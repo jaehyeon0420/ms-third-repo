@@ -63,7 +63,9 @@ def _build_email_body(approved_reports: list[ApprovedReport], p_trademark_name: 
             reports_html += f"""
             <div style="margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
                 <h3>#{idx}. 침해 의심 상표: {report.c_trademark_name}</h3>
-                <p>위험도: <strong>{report.risk_level=="H" and "고위험" or report.risk_level=="M" and "중위험" or "저위험"}</strong> | 종합 점수: <strong>{report.total_score * 100:.2f}점</strong></p>
+                <p>위험도: 
+                    <strong style="color: {report.risk_level=="H" and "red" or report.risk_level=="M" and "orange" or "green"};">{report.risk_level=="H" and "고위험" or report.risk_level=="M" and "중위험" or "저위험"}</strong>
+                    | 종합 점수: <strong>{report.total_score * 100:.2f}점</strong></p>
                 {collect_image_tag}
                 <hr/>
                 <div style="background-color: #f9f9f9; padding: 10px; font-family: monospace;">
@@ -86,7 +88,7 @@ def _build_email_body(approved_reports: list[ApprovedReport], p_trademark_name: 
         <html>
         <body>
             <h2>[TIP] 상표권 침해 분석 보고서</h2>
-            <p style="color: red;">※ 본 콘텐츠는 AI에 의해 생성되었으며, 정보의 정확성이나 완전성을 100% 보장하지 않습니다. 중요한 결정 시에는 반드시 사실 관계를 별도로 확인하시기 바랍니다.</p>
+            <p style="color: red;">※ 본 콘텐츠는 AI에 의해 생성되었으며, 정보의 정확성이나 완전성을 100% 보장하지 않습니다. 침해 여부 판단 시에는 반드시 사실 관계를 별도로 확인하시기 바랍니다.</p>
             <br>
             <p>안녕하세요.</p>
             <p>보호 상표 <strong>[{p_trademark_name}]</strong>에 대한 
