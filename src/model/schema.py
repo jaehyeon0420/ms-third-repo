@@ -71,6 +71,7 @@ class EvaluationResult(BaseModel):
 class ApprovedReport(BaseModel):
     """승인된 보고서 정보 (메일 발송용)"""
     c_trademark_name: str       # 수집 상표명
+    c_trademark_image: str      # 수집 상표 이미지
     report_content: str         # 보고서 내용
     risk_level: str             # 위험도 (H, M)
     total_score: float          # 종합 점수

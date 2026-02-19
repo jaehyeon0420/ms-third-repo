@@ -104,7 +104,7 @@ class VectorStore:
                     where_clause = " AND ".join(class_code_where)
                     
                     # 현재 보호 상표에 대해 이미 침해 위험군 테이블에 등록된 수집 상표는 제외
-                    where_clause += f" AND not exists (select 1 from tbl_infringe_risk c where c.p_trademark_reg_no = ${param_idx} and c.c_product_name = a.c_product_name and c.c_product_page_url = a.c_product_page_url and c.c_trademark_name = a.c_trademark_name and c.c_trademark_name = a.c_trademark_name and c.c_manufacturer_info = a.c_manufacturer_info and c.c_brand_info = a.c_brand_info)"
+                    where_clause += f" AND not exists (select 1 from tbl_infringe_risk c where c.p_trademark_reg_no = ${param_idx} and c.c_product_name = a.c_product_name and (c.c_trademark_name = a.c_trademark_name or c.c_trademark_image = a.c_trademark_image))"
                     params.append(p_row["p_trademark_reg_no"])
                     param_idx += 1
 
@@ -145,9 +145,9 @@ class VectorStore:
                             "c_trademark_type"              : c_row["c_trademark_type"] or "",
                             "c_trademark_class_code"        : c_row["c_trademark_class_code"] or "",
                             "c_trademark_name"              : c_row["c_trademark_name"] or "",
-                            "c_trademark_name_vec"          : json.loads(c_row["c_trademark_name_vec"]),
+                            "c_trademark_name_vec"          : json.loads(c_row["c_trademark_name_vec"]) if c_row["c_trademark_name_vec"] is not None else [],
                             "c_trademark_image"             : self._encode_image(c_row["c_trademark_image"]),
-                            "c_trademark_image_vec"         : json.loads(c_row["c_trademark_image_vec"]),
+                            "c_trademark_image_vec"         : json.loads(c_row["c_trademark_image_vec"]) if c_row["c_trademark_image_vec"] is not None else [],
                             "c_trademark_ent_date"          : c_row["c_trademark_ent_date"],
                         }
                         c_tm_list.append(c_tm_dict)
@@ -192,10 +192,14 @@ class VectorStore:
             
             c_image_bytes = self._decode_image(c_tm.c_trademark_image)
             
+            # 빈 리스트 처리
+            c_trademark_name_vec = str(c_tm.c_trademark_name_vec) if c_tm.c_trademark_name_vec else None
+            c_trademark_image_vec = str(c_tm.c_trademark_image_vec) if c_tm.c_trademark_image_vec else None
+            
             params = [
                 c_tm.c_product_name, c_tm.c_product_page_url, c_tm.c_manufacturer_info, c_tm.c_brand_info, c_tm.c_l_category, 
                 c_tm.c_m_category, c_tm.c_s_category, c_tm.c_trademark_type, c_tm.c_trademark_class_code, c_tm.c_trademark_name, 
-                c_tm.c_trademark_name_vec, c_image_bytes, c_tm.c_trademark_image_vec, c_tm.c_trademark_ent_date, ensemble_result.visual_score, 
+                c_trademark_name_vec, c_image_bytes, c_trademark_image_vec, c_tm.c_trademark_ent_date, ensemble_result.visual_score, 
                 ensemble_result.visual_weight, ensemble_result.phonetic_score, ensemble_result.phonetic_weight, ensemble_result.conceptual_score, ensemble_result.conceptual_weight,
                 ensemble_result.total_score, ensemble_result.risk_level,p_trademark_reg_no
             ]

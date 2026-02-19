@@ -24,6 +24,7 @@ async def main():
     logger.info("데이터베이스 연결 초기화 중...")
     await Database.get_pool()
     vector_store = Container.get_vector_store()
+    total_processed = 0
     
     try:
         logger.info("TIP 배치 작업 시작...")
@@ -38,7 +39,6 @@ async def main():
         logger.info(f"유사 상표 후보가 있는 보호 상표 {len(target_groups)}개를 찾았습니다.")
 
         # 배치 루프 실행
-        total_processed = 0
         
         for group in target_groups:
             p_tm = group["protection_trademark"]        # 보호 상표 1개 정보
@@ -53,7 +53,7 @@ async def main():
                 p_tm = ProtectionTrademarkInfo(**p_tm)
                 c_tm_list = [CollectedTrademarkInfo(**ct) for ct in c_tm_list]
             except Exception as e:
-                logger.error(f"데이터 유효성 검사 오류 (상표명: {p_tm.get('p_trademark_name')}): {e}")
+                logger.error(f"데이터 유효성 검사 오류 (상표명: {p_tm.p_trademark_name}): {e}")
                 continue
                 
             logger.info(f"보호 상표 처리 중: {p_tm.p_trademark_name} (ID: {p_tm.p_trademark_user_no})")
@@ -117,6 +117,7 @@ async def main():
                         
                         approved_reports.append(ApprovedReport(
                             c_trademark_name=c_tm_info.c_trademark_name,
+                            c_trademark_image=c_tm_info.c_trademark_image,
                             report_content=result.get("report_content", ""),
                             risk_level=risk_level,
                             total_score=ensemble_result.total_score if ensemble_result else 0.0
@@ -129,13 +130,14 @@ async def main():
             
             # 수집 상표 N개 처리 완료 후, 승인된 보고서가 있으면 메일 발송
             if approved_reports:
-                logger.info(f"   📧 {p_tm.p_trademark_name}에 대한 보고서 {len(approved_reports)}건 메일 발송 중...")
+                logger.info(f"  {p_tm.p_trademark_name}에 대한 보고서 {len(approved_reports)}건 메일 발송 중...")
                 
                 try:
                     await send_report_mail(
                         approved_reports=approved_reports,
                         p_trademark_reg_no=p_tm.p_trademark_reg_no,
                         p_trademark_name=p_tm.p_trademark_name,
+                        p_trademark_image=p_tm.p_trademark_image,
                     )
                 except Exception as e:
                     logger.error(f"   ❌ 메일 발송 중 오류 발생: {e}", exc_info=True)

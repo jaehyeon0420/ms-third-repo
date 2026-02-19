@@ -1,5 +1,7 @@
 import os
 import smtplib
+import base64
+from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from src.utils.db import Database
@@ -40,16 +42,29 @@ async def _get_agent_email(p_trademark_reg_no: str) -> str | None:
         return None
 
 
-def _build_email_body(approved_reports: list[ApprovedReport], p_trademark_name: str) -> str:
+def _build_email_body(approved_reports: list[ApprovedReport], p_trademark_name: str, p_trademark_image: str) -> str:
     """보호 상표 1건에 대한 승인된 보고서 N건을 하나의 메일 본문으로 구성"""
     try:
+        
+                
         reports_html = ""
         for idx, report in enumerate(approved_reports, 1):
+            collect_image_data = _get_base64_image(report.c_trademark_image)
+            
+            # img 태그 생성 (데이터 타입이 png라면 image/png로 설정)
+            collect_image_tag = f"""
+            <div style="margin-top: 15px; text-align: left;">
+                <img src="data:image/jpeg;base64,{collect_image_data}" 
+                        alt="{report.c_trademark_name} 이미지" 
+                        style="max-width: 100%; height: auto; border: 1px solid #eee;"/>
+            </div>
+            """
             formatted_content = report.report_content.replace("\n", "<br>")
             reports_html += f"""
             <div style="margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
                 <h3>#{idx}. 침해 의심 상표: {report.c_trademark_name}</h3>
-                <p>위험도: <strong>{report.risk_level}</strong> | 종합 점수: <strong>{report.total_score}</strong></p>
+                <p>위험도: <strong>{report.risk_level=="H" and "고위험" or report.risk_level=="M" and "중위험" or "저위험"}</strong> | 종합 점수: <strong>{report.total_score * 100:.2f}점</strong></p>
+                {collect_image_tag}
                 <hr/>
                 <div style="background-color: #f9f9f9; padding: 10px; font-family: monospace;">
                     {formatted_content}
@@ -57,6 +72,16 @@ def _build_email_body(approved_reports: list[ApprovedReport], p_trademark_name: 
             </div>
             """
         
+        protection_image_data = _get_base64_image(p_trademark_image)
+        # img 태그 생성 (데이터 타입이 png라면 image/png로 설정)
+        protection_image_tag = f"""
+        <div style="margin-top: 15px; text-align: center;">
+            <img src="data:image/jpeg;base64,{protection_image_data}" 
+                    alt="보호 상표 이미지" 
+                    style="max-width: 100%; height: auto; border: 1px solid #eee;"/>
+        </div>
+        """
+                
         return f"""
         <html>
         <body>
@@ -64,6 +89,7 @@ def _build_email_body(approved_reports: list[ApprovedReport], p_trademark_name: 
             <p>안녕하세요.</p>
             <p>보호 상표 <strong>[{p_trademark_name}]</strong>에 대한 
             침해 의심 상표 <strong>{len(approved_reports)}건</strong>의 분석이 완료되었습니다.</p>
+            {protection_image_tag}
             <hr/>
             {reports_html}
             <p>본 메일은 발신 전용입니다.</p>
@@ -79,6 +105,7 @@ async def send_report_mail(
     approved_reports: list[ApprovedReport],
     p_trademark_reg_no: str,
     p_trademark_name: str,
+    p_trademark_image: str,
 ) -> bool:
     """
     보호 상표 1건에 대한 승인된 보고서 N건을 담당 변리사에게 메일로 일괄 발송
@@ -110,8 +137,37 @@ async def send_report_mail(
         msg["From"] = smtp_user
         msg["To"] = agent_email
         
-        body = _build_email_body(approved_reports, p_trademark_name)
+        body = _build_email_body(approved_reports, p_trademark_name, p_trademark_image)
         msg.attach(MIMEText(body, "html"))
+        
+        
+        # 보호 상표
+        if p_trademark_image is not None:
+                # MIMEImage 객체 생성 (이미지 데이터가 bytes 형태이므로 바로 전달 가능)
+                # 이미지 타입이 jpg가 아니라면 _subtype을 'png' 등으로 지정 가능
+                image_data = _get_image_bytes(p_trademark_image)
+                img_part = MIMEImage(image_data, _subtype="jpeg")
+                
+                # 첨부파일 이름 설정 (수신자가 보게 될 파일명)
+                filename = f"[보호 대상 상표]_{p_trademark_name}.jpg"
+                img_part.add_header('Content-Disposition', 'attachment', filename=filename)
+                
+                # 메일에 첨부
+                msg.attach(img_part)
+        # 수집 상표        
+        for idx, report in enumerate(approved_reports, 1):
+            if report.c_trademark_image is not None:
+                # MIMEImage 객체 생성 (이미지 데이터가 bytes 형태이므로 바로 전달 가능)
+                # 이미지 타입이 jpg가 아니라면 _subtype을 'png' 등으로 지정 가능
+                image_data = _get_image_bytes(report.c_trademark_image)
+                img_part = MIMEImage(image_data, _subtype="jpeg")
+                
+                # 첨부파일 이름 설정 (수신자가 보게 될 파일명)
+                filename = f"[침해 의심 상표]_[{idx}]_{report.c_trademark_name}.jpg"
+                img_part.add_header('Content-Disposition', 'attachment', filename=filename)
+                
+                # 메일에 첨부
+                msg.attach(img_part)
         
         # 3. 메일 발송
         logger.info(f"[이메일] SMTP 서버 연결 시도: {smtp_server}:{smtp_port}")
@@ -126,3 +182,59 @@ async def send_report_mail(
     except Exception as e:
         logger.error(f"[이메일] 발송 실패: {e}", exc_info=True)
         return False
+
+
+# 본문용 이미지 변환
+def _get_base64_image(image_data: str) -> str:
+    try:
+        # 1. 만약 이미 바이트 타입이라면 그대로 인코딩
+        if isinstance(image_data, bytes):
+            return base64.b64encode(image_data).decode('utf-8')
+        
+        # 2. 문자열(str) 타입인 경우 처리
+        if isinstance(image_data, str):
+            # 케이스 A: PostgreSQL Hex 방식 (\x로 시작하는 경우)
+            if image_data.startswith('\\x'):
+                hex_data = image_data[2:] # \x 제거
+                return base64.b64encode(bytes.fromhex(hex_data)).decode('utf-8')
+            
+            # 케이스 B: 이미 Base64 문자열인 경우 (그대로 반환)
+            # (간단한 체크: 알파벳/숫자로만 구성되어 있고 길이가 충분히 길다면)
+            if len(image_data) > 100 and ',' not in image_data: 
+                return image_data
+            
+            # 케이스 C: 일반 문자열인데 바이트로 변환이 필요한 경우
+            return base64.b64encode(image_data.encode('utf-8')).decode('utf-8')
+            
+    except Exception as e:
+        print(f"이미지 변환 오류: {e}")
+        return None
+    
+# 첨부파일용 이미지 바이트 변환    
+def _get_image_bytes(image_data) -> bytes:
+    """DB에서 가져온 데이터를 순수 바이트(bytes)로 변환 (첨부파일용)"""
+    try:
+        if image_data is None:
+            return None
+            
+        # 1. 이미 bytes 타입인 경우 (가장 이상적)
+        if isinstance(image_data, bytes):
+            return image_data
+        
+        # 2. 문자열(str) 타입인 경우 (PostgreSQL bytea를 str로 조회했을 때)
+        if isinstance(image_data, str):
+            # 케이스: PostgreSQL Hex 방식 (\x로 시작)
+            if image_data.startswith('\\x'):
+                hex_data = image_data[2:] # \x 제거
+                return bytes.fromhex(hex_data) # 16진수 문자열을 다시 바이트로!
+            
+            # 케이스: 만약 실수로 이미 Base64로 인코딩된 문자열이 들어왔다면 디코딩
+            try:
+                return base64.b64decode(image_data)
+            except:
+                pass
+                
+        return None
+    except Exception as e:
+        print(f"이미지 바이트 변환 오류: {e}")
+        return None    
