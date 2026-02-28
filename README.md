@@ -1,9 +1,11 @@
-# TIP - Trademark Infringement Protector
-
-> **Corrective RAG 기반 상표권 침해 자동 모니터링 시스템**
-
 <p align="center">
   <img src="assets/logo.png" alt="TIP Logo" width="200" />
+</p>
+
+<h1 align="center">TIP - Trademark Infringement Protector</h1>
+
+<p align="center">
+  <strong>Corrective RAG 기반 상표권 침해 자동 모니터링 시스템</strong>
 </p>
 
 ## 목차
