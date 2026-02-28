@@ -23,6 +23,17 @@
 
 **TIP**은 이러한 문제를 해결하기 위해, 상표의 **외관(Visual)·호칭(Phonetic)·관념(Conceptual)** 3가지 관점에서 AI 기반 유사도 분석을 수행하고, **Corrective RAG**로 관련 판례, 최종 침해 분석 보고서를 자동 검증한 뒤, 담당 변리사에게 이메일로 발송하는 **End-to-End 자동화 시스템**입니다.
 
+### 프로젝트는 20일간 진행되었으며, 총 6명의 팀원이 아래와 같이 역할을 담당하였습니다.
+
+| 이름 | 담당 역할 |
+|---|---|
+| 배재현(본인) | **Corrective RAG 구축, jina-embedding-v3 파인튜닝, Qwen2.5-7B 파인튜닝, DB 설계 및 구축, 소스코드 통합 및 배포** |
+| 성*훈 | 프로젝트 매니저, YOLO와 SAM을 이용한 Detection 모델 개발, 앙상블 모델 개발, 일정 관리 |
+| 임*영 | 시각 유사 모델 개발, 관념 유사 모델 개발, PPT 가이드라인 제시 |
+| 정*희 | 호칭 유사 모델 개발, PPT 가이드라인 제시 |
+| 정*령 | 판례 PDF 데이터 전처리 (Tesseract OCR, PyMuPDF) 및 청킹 전략(구조적, 시맨틱 청킹) 개발 |
+| 이*엽 | 데이터 수집 파이프라인 구축 및 배포 |
+
 ---
 
 ## 목차
@@ -35,10 +46,13 @@
 - [인프라 및 배포](#인프라-및-배포)
 - [환경 설정](#환경-설정)
 - [실행 방법](#실행-방법)
+- [성과](#성과)
 
 ---
 
 ## LangGraph 워크플로우
+
+- [목차로 돌아가기](#목차)
 
 보호 상표와 수집 상표 1:1 쌍마다 아래 워크플로우가 실행됩니다.
 
@@ -46,60 +60,12 @@
   <img src="assets/rag.PNG" alt="TIP workflow"/>
 </p>
 
-```mermaid
-flowchart TD
-    START((START)) --> start["🚀 start<br/><sub>병렬 실행</sub>"]
-
-    start --> visual["외관 유사도 분석"]
-    start --> phonetic["호칭 유사도 분석"]
-    start --> conceptual["관념 유사도 분석"]
-
-    visual --> ensemble["결과 종합"]
-    phonetic --> ensemble
-    conceptual --> ensemble
-
-    ensemble -->|"H · M · L"| save_risk["침해 위험군 DB 저장"]
-    ensemble -->|"Safe"| END_SAFE((END))
-
-    save_risk --> generate_query["검색 쿼리 생성<br/><sub>GPT-4o</sub>"]
-
-    generate_query --> retrieve["판례 벡터 검색<br/><sub>pgvector</sub>"]
-    retrieve --> grade["판례 검증<br/><sub>GPT-5.1</sub>"]
-
-    grade -->|"✅ approved"| gen_report["보고서 생성<br/><sub>Qwen-2.5</sub>"]
-    grade -->|"🔄 rewrite"| generate_query
-    grade -->|"🌐 web_search"| web_search["웹 검색<br/><sub>법령정보센터 API</sub>"]
-
-    web_search --> grade
-
-    gen_report --> evaluate["보고서 평가<br/><sub>GPT-5.1</sub>"]
-
-    evaluate -->|"✅ approved<br/><sub>score ≥ 70</sub>"| END_OK((END))
-    evaluate -->|"🔄 regenerate<br/><sub>보고서 재생성</sub>"| gen_report
-    evaluate -->|"🔄 regenerate<br/><sub>쿼리 재생성</sub>"| generate_query
-
-    style START fill:#0d1117,color:#fff,stroke:#30363d
-    style END_SAFE fill:#0d1117,color:#fff,stroke:#30363d
-    style END_OK fill:#0d1117,color:#fff,stroke:#30363d
-    style start fill:#1f6feb,color:#fff,stroke:#1f6feb
-    style visual fill:#238636,color:#fff,stroke:#238636
-    style phonetic fill:#238636,color:#fff,stroke:#238636
-    style conceptual fill:#238636,color:#fff,stroke:#238636
-    style ensemble fill:#da3633,color:#fff,stroke:#da3633
-    style save_risk fill:#388bfd,color:#fff,stroke:#388bfd
-    style generate_query fill:#8957e5,color:#fff,stroke:#8957e5
-    style retrieve fill:#8957e5,color:#fff,stroke:#8957e5
-    style grade fill:#d29922,color:#000,stroke:#d29922
-    style web_search fill:#8957e5,color:#fff,stroke:#8957e5
-    style gen_report fill:#f78166,color:#000,stroke:#f78166
-    style evaluate fill:#d29922,color:#000,stroke:#d29922
-```
-
 ### 워크플로우 단계별 설명
 
 | 단계 | 노드 | 처리 내용 | 사용 모델 / 도구 |
 |:---:|---|---|---|
-| 1 | **start** | Fan-out 분기점. 3개 유사도 분석을 병렬 실행 | - |
+| 0 | **prev** | 임베딩된 보호 상표명과 수집 상표명의 코사인 유사도 측정으로 1차 필터링 조회 | jina-embedding-v3 | 
+| 1 | **start** | 3개 유사도 분석을 병렬 실행 | - | 
 | 2 | **visual_similarity** | 상표 이미지 벡터 간 코사인 유사도 산출 | NumPy |
 | 3 | **phonetic_similarity** | 음역 변환 → 자모 분해 → JaroWinkler + Partial Ratio 조합 점수 산출 | GPT-5.1-chat, MeCab-ko, g2pk, jamo, rapidfuzz |
 | 4 | **conceptual_similarity** | 이미지 캡셔닝 → 텍스트 임베딩 → 코사인 유사도 산출 | GPT-5.1-chat (Vision), text-embedding-3-large |
@@ -126,6 +92,12 @@ flowchart TD
 
 ## 핵심 기능 상세
 
+- [목차로 돌아가기](#목차)
+
+### 0. 보호 상표 및 수집 상표 정보 조회
+
+DB에 사전 저장된 보호 상표명 벡터(jina-embedding-v3)에 대해 수집 상표명 벡터의 코사인 유사도 또는 보호 상표 이미지 벡터와 수집 상표 이미지 벡터가 임계값 이상인 데이터만 필터링되어 조회됩니다.
+
 ### 1. 3-Track 유사도 분석 (병렬 실행)
 
 ```
@@ -135,7 +107,7 @@ flowchart TD
     └── 관념(Conceptual): GPT Vision 캡셔닝 → 임베딩 → 코사인 유사도
 ```
 
-**외관 유사도**: DB에 사전 저장된 이미지 임베딩 벡터 간 코사인 유사도를 산출합니다.
+**외관 유사도**: DB에 사전 저장된 이미지 임베딩(ResNet) 벡터 간 코사인 유사도를 산출합니다.
 
 **호칭 유사도**: GPT-5.1-chat으로 외래어/영문 상표명을 한국어 음역으로 변환 후, `MeCab-ko` + `g2pk`로 표준 발음을 생성합니다. 이후 자모 분해 → 한국어 음운 특성 반영 커스텀 자모 스코어링, JaroWinkler, Partial Ratio를 **단어 길이에 따라 동적 가중 조합**하는 3-Tier Decision Logic을 적용합니다.
 
@@ -177,11 +149,14 @@ flowchart TD
 
 승인된 보고서는 보호 상표 단위로 묶어 담당 변리사에게 **HTML 이메일**로 자동 발송합니다. 상표 이미지는 본문에 인라인 삽입됩니다.
 
-![Email Report](assets/email-report.PNG)
+![Email Report-1](assets/email-report-1.PNG)
+![Email Report-2](assets/email-report.PNG)
 
 ---
 
 ## 기술 스택
+
+- [목차로 돌아가기](#목차)
 
 | 분류 | 기술 | 용도 |
 |---|---|---|
@@ -200,6 +175,8 @@ flowchart TD
 
 ## LLM 역할 및 모델 구성
 
+- [목차로 돌아가기](#목차)
+
 | 역할 | 모델 | 담당 노드 | 호출 방식 |
 |---|---|---|---|
 | **Judge / Evaluator** | GPT-5.1-chat | 판례 검증, 보고서 평가, 식별력 평가 | Azure OpenAI · Structured Output |
@@ -215,6 +192,8 @@ flowchart TD
 
 ## 프로젝트 구조
 
+- [목차로 돌아가기](#목차)
+  
 ```
 tip-project/
 ├── src/
@@ -270,9 +249,13 @@ tip-project/
 
 ## 인프라 및 배포
 
+- [목차로 돌아가기](#목차)
+
 ### Azure ML 기반 자동화 파이프라인
 
 TIP은 **Azure Machine Learning**의 Compute Cluster에서 일일 배치 작업으로 자동 실행됩니다.
+
+![Azure Job](assets/azure-job.PNG)
 
 ```
 schedule.yaml (Cron: KST 10:00)
@@ -297,16 +280,12 @@ schedule.yaml (Cron: KST 10:00)
 - **파라미터**: `temperature=0.1`, `max_tokens=3000`, `top_p=0.9`
 - **장점**: 상용 API 대비 비용 절감, 응답 속도 최적화, 커스터마이징 용이
 
-<!--
-📸 이미지 삽입 권장 위치 #6: Azure ML 리소스 구성 스크린샷
-   - Azure ML Studio의 Compute Cluster, Endpoints, Jobs 화면
-   - 예시: ![Azure ML](docs/images/azure-ml-resources.png)
--->
-
 ---
 
 ## 환경 설정
 
+- [목차로 돌아가기](#목차)
+  
 ### 필수 환경 변수
 
 `.env` 파일 또는 Azure ML Job의 `environment_variables`에 아래 항목을 설정합니다:
@@ -342,6 +321,8 @@ LOG_LEVEL=INFO
 
 ## 실행 방법
 
+- [목차로 돌아가기](#목차)
+  
 ### 로컬 실행
 
 ```bash
@@ -385,9 +366,11 @@ az ml schedule show \
 
 ## 성과
 
+- [목차로 돌아가기](#목차)
+  
 기술적 혁신성을 인정받아 **우수상**을 수상하였습니다.
 
-![Award](assets/award.jpg)
+![Award](assets/award-1.jpg)
 
 
 <!--
