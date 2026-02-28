@@ -56,7 +56,7 @@ def _build_email_body(approved_reports: list[ApprovedReport], p_trademark_name: 
             <div style="margin-top: 15px; text-align: left;">
                 <img src="data:image/jpeg;base64,{collect_image_data}" 
                         alt="{report.c_trademark_name} 이미지" 
-                        style="max-width: 100%; height: auto; border: 1px solid #eee;"/>
+                        style="width:300px; height: auto; border: 1px solid #eee;"/>
             </div>
             """
             formatted_content = report.report_content.replace("\n", "<br>")

@@ -6,42 +6,42 @@ from src.model.schema import EvaluationResult
 from langchain_core.messages import SystemMessage, HumanMessage
 
 
-# def generate_report(context: dict) -> str:
-#     system_prompt = get_system_prompt("report_generation")
-#     user_prompt = render_user_prompt("report_generation", **context)
-    
-#     # 모델 파라미터 로드
-#     qwen_config = model_config.get('models', {}).get('qwen_reporter', {})
-    
-#     # Container에서 vLLM 클라이언트 가져오기
-#     aclient = Container.get_vllm_client()
-    
-#     response = aclient.chat.completions.create(
-#         model="trademark-analysis",
-#         messages=[
-#             {"role": "system", "content": system_prompt},
-#             {"role": "user", "content": user_prompt}
-#         ],
-#         temperature=qwen_config.get('temperature'),
-#         max_tokens=qwen_config.get('max_tokens'),
-#         top_p=qwen_config.get('top_p'),
-#         presence_penalty=1.0
-#     )
-    
-#     raw_content = response.choices[0].message.content
-#     cleaned_content = clean_qwen_response(raw_content)
-    
-#     return cleaned_content
-    
 def generate_report(context: dict) -> str:
-    model = Container.get_gpt51_chat()
-    
     system_prompt = get_system_prompt("report_generation")
     user_prompt = render_user_prompt("report_generation", **context)
-        
-    report_content = generate_text(model, system_prompt, user_prompt, "")
     
-    return report_content
+    # 모델 파라미터 로드
+    qwen_config = model_config.get('models', {}).get('qwen_reporter', {})
+    
+    # Container에서 vLLM 클라이언트 가져오기
+    aclient = Container.get_vllm_client()
+    
+    response = aclient.chat.completions.create(
+        model="trademark-analysis",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=qwen_config.get('temperature'),
+        max_tokens=qwen_config.get('max_tokens'),
+        top_p=qwen_config.get('top_p'),
+        presence_penalty=1.0
+    )
+    
+    raw_content = response.choices[0].message.content
+    cleaned_content = clean_qwen_response(raw_content)
+    
+    return cleaned_content
+    
+# def generate_report(context: dict) -> str:
+#     model = Container.get_gpt51_chat()
+    
+#     system_prompt = get_system_prompt("report_generation")
+#     user_prompt = render_user_prompt("report_generation", **context)
+        
+#     report_content = generate_text(model, system_prompt, user_prompt, "")
+    
+#     return report_content
 
 
 def evaluate_report(context: dict, report_content: str) -> EvaluationResult:

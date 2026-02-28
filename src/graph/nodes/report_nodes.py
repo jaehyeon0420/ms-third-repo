@@ -7,7 +7,7 @@ from src.services.report import generate_report, evaluate_report
 logger = get_logger(__name__)
 
 async def generate_report_node(state: GraphState) -> Dict[str, Any]:
-    """Qwen-3-8B: 보고서 생성 (vLLM API 호출)"""
+    """Qwen-2.5-7B: 보고서 생성 (vLLM API 호출)"""
     try:
         c_tm = state["current_collected_trademark"]
         p_tm = state["protection_trademark"]
