@@ -370,7 +370,7 @@ az ml schedule show \
   
 기술적 혁신성을 인정받아 **우수상**을 수상하였습니다.
 
-![Award](assets/award-1.jpg)
+![Award](assets/award.jpg)
 
 
 <!--
