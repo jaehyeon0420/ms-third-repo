@@ -2,7 +2,7 @@
 
 > **Corrective RAG 기반 상표권 침해 자동 모니터링 시스템**
 
-![TIP Banner](assets/workflow.png)
+![TIP Banner](assets/logo.png)
 
 ## 프로젝트 개요
 
@@ -232,7 +232,7 @@ flowchart TD
 
 승인된 보고서는 보호 상표 단위로 묶어 담당 변리사에게 **HTML 이메일**로 자동 발송합니다. 상표 이미지는 본문에 인라인 삽입됩니다.
 
-![Email Report](assets/email-report.png)
+![Email Report](assets/email-report.PNG)
 
 ---
 
@@ -436,6 +436,13 @@ az ml schedule show \
 ```
 
 > **주의**: 코드 수정 후에는 반드시 기존 스케줄을 삭제하고 재등록해야 합니다. Azure ML 스케줄은 등록 시점의 코드 스냅샷을 사용합니다.
+
+
+## 성과
+
+기술적 혁신성을 인정받아 **우수상**을 수상하였습니다.
+
+![Award](assets/award.jpg)
 
 
 <!--
