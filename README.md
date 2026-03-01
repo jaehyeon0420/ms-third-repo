@@ -166,7 +166,7 @@ DB에 사전 저장된 보호 상표명 벡터(jina-embedding-v3)에 대해 수�
 | **Orchestration** | LangGraph (StateGraph) | 워크플로우 상태 관리, 조건부 라우팅, 병렬 실행 |
 | **LLM** | Azure OpenAI (GPT-5.1-chat, GPT-4o) | 판례 검증, 보고서 평가, 이미지 캡셔닝, 식별력 평가 |
 | **LLM Serving** | vLLM on Azure ML | Qwen-2.5-7B 모델 서빙 (보고서 생성) |
-| **Embedding** | jina-embedding-v2, text-embedding-3-large | 관념 유사도 임베딩, 판례 벡터 검색 |
+| **Embedding** | jina-embedding-v3, text-embedding-3-large | 관념 유사도 임베딩, 판례 벡터 검색 |
 | **Database** | PostgreSQL + pgvector | 벡터 유사도 검색, 상표·판례·거절사유 데이터 저장 |
 | **Korean NLP** | MeCab-ko, g2pk, jamo, rapidfuzz | 형태소 분석, 발음 변환, 자모 분해, 문자열 유사도 |
 | **Framework** | LangChain, Pydantic v2, Jinja2 | LLM 인터페이스, 데이터 검증, 프롬프트 템플릿 |
